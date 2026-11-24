@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Network Geeks VPN",
+    "slug": "network-geeks-vpn",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": { "image": "./assets/splash.png", "resizeMode": "contain", "backgroundColor": "#0f766e" },
+    "android": {
+      "package": "com.yourcompany.networkgeeks",
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#0f766e" },
+      "permissions": ["INTERNET", "FOREGROUND_SERVICE", "POST_NOTIFICATIONS"]
+    },
+    "ios": { "bundleIdentifier": "com.yourcompany.networkgeeks", "supportsTablet": false },
+    "plugins": ["expo-secure-store", "@react-native-google-signin/google-signin", "./plugins/withWGTunnel"]
+  }
+}

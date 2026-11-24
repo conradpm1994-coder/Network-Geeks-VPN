@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>White-label VPN</title>
+<style>
+:root{--bg:#eef3f1;--sf:#fff;--tx:#10231f;--mu:#5b6f6a;--ac:#0f766e;--ln:#d5e0dc;--er:#b42318;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c1715;--sf:#142421;--tx:#e8f2ef;--mu:#8fa7a1;--ln:#25403b;--er:#f97066;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0c1715;--sf:#142421;--tx:#e8f2ef;--mu:#8fa7a1;--ln:#25403b;--er:#f97066;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.45 Georgia,"Iowan Old Style",serif;min-height:100vh}
+#app{max-width:460px;margin:0 auto;padding:20px 18px 40px}
+h1,h2,h3{margin:0 0 8px;line-height:1.15}h1{font-size:30px}h2{font-size:22px}h3{font-size:17px}
+p{margin:0 0 12px}.mu{color:var(--mu);font-size:14px}.er{color:var(--er);font-size:14px}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--ln);border-radius:10px;background:var(--sf);margin:4px 0 12px}
+button{border:0;border-radius:12px;padding:13px 16px;background:var(--ac);color:#fff;font-weight:700;width:100%;cursor:pointer;margin:4px 0}
+button.alt{background:transparent;color:var(--tx);border:1px solid var(--ln)}
+button.sm{width:auto;padding:8px 12px;font-size:14px}
+:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:16px;padding:16px;margin:12px 0}
+.row{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.brand img,.brand svg{width:36px;height:36px;border-radius:9px;object-fit:cover}
+.big{width:170px;height:170px;border-radius:50%;margin:24px auto;display:grid;place-items:center;font-size:20px;font-weight:700;border:8px solid var(--ln);background:var(--sf);cursor:pointer;color:var(--tx)}
+.big.on{border-color:var(--ac);color:var(--ac)}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:12px 0}.tabs button{width:auto;white-space:nowrap;padding:8px 12px}
+.nav{position:sticky;bottom:0;display:flex;gap:6px;background:var(--bg);padding:10px 0}
+.nav button{background:var(--sf);color:var(--tx);border:1px solid var(--ln)}.nav button.cur{border-color:var(--ac);color:var(--ac)}
+.sup a{display:block;padding:12px;margin:6px 0;border:1px solid var(--ln);border-radius:12px;text-decoration:none;color:var(--tx);background:var(--sf);font-weight:700}
+.tag{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--ac);color:#fff;font-size:13px}
+.demo{background:var(--sf);border:1px dashed var(--ac);padding:8px 12px;border-radius:10px;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;padding:6px 4px;border-bottom:1px solid var(--ln)}
+.scroll{overflow-x:auto}
+</style></head><body><div id="app"></div>
+<script>window.API_BASE="https://api.yourdomain.com";</script>
+<script>
+const DEF={brand:"Network Geeks",logo:"",accent:"#0f766e",trialDays:7,price:1.99,currency:"USD",
+ wa:"+19715247533",email:"conrad.pm1994@gmail.com",ticketEmail:"conrad.pm1994@gmail.com",
+ admin:{user:"admin",pass:"ChangeMe!2026",must:true}};
+const API=(window.API_BASE||"").replace(/\/$/,"");
+let S={cfg:DEF,users:[],tickets:[],me:null,tok:null,at:null,mc:false,v:"welcome",tab:"brand",adm:false,pend:null,on:false,loc:"Frankfurt",msg:""};
+try{S.tok=localStorage.getItem("vpn_tok");S.at=sessionStorage.getItem("vpn_adm")}catch(e){}
+const store=(k,v,ss)=>{try{(ss?sessionStorage:localStorage)[v?"setItem":"removeItem"](k,v)}catch(e){}};
+async function api(p,o={},adm){const h={"Content-Type":"application/json"},t=adm?S.at:S.tok;if(t)h.Authorization="Bearer "+t;let r;try{r=await fetch(API+p,{method:o.method||"GET",headers:h,body:o.body&&JSON.stringify(o.body)})}catch(e){throw Error("Can’t reach the server. Check your connection.")}const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(Error(j.error||"Request failed."),{code:r.status});return j}
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $=id=>document.getElementById(id);
+const LOCS=["Frankfurt","London","New York","Singapore","Tokyo","São Paulo"];
+const DAY=864e5;
+function logo(){return S.cfg.logo?`<img src="${S.cfg.logo}" alt="">`:`<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="9" fill="var(--ac)"/><path d="M18 7l9 3v7c0 6-4 10-9 12-5-2-9-6-9-12v-7z" fill="#fff"/></svg>`}
+function status(u){return u?(u.status=="active"?"sub":u.status):"none"}
+function daysLeft(u){return Math.max(0,Math.ceil((u.expiresAt-Date.now())/DAY))}
+function go(v,m){S.v=v;S.msg=m||"";render()}
+function head(){return `<div class="row" style="margin-bottom:12px"><div class="brand">${logo()}${esc(S.cfg.brand)}</div></div>`}
+function nav(){const t=[["home","Connect"],["support","Support"],["account","Account"]];return `<div class="nav">${t.map(([k,l])=>`<button class="${S.v==k?"cur":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>`}
+const err=()=>S.msg?`<p class="er" role="alert">${esc(S.msg)}</p>`:"";
+
+function vWelcome(){return head()+`<h1>Private by default.</h1><p class="mu">Start your free ${S.cfg.trialDays}-day trial. Then ${S.cfg.currency} ${S.cfg.price.toFixed(2)} per week. Cancel anytime in your store settings.</p>${err()}
+<div class="card"><h3>Continue with Google</h3><button class="alt" onclick="google()">Continue with Google</button></div>
+<div class="card"><h3>Sign up with email</h3><label class="mu" for="em">Email</label><input id="em" type="email" autocomplete="email"><label class="mu" for="pw">Password (8+ characters)</label><input id="pw" type="password" autocomplete="new-password"><button onclick="signup()">Create account</button><button class="alt" onclick="login()">I already have an account</button></div>
+<p class="mu">Admin? Open this page with <b>#admin</b> at the end of the link.</p>`}
+function vOtp(){return head()+`<h2>Enter your code</h2><p class="mu">We sent a 6-digit code to ${esc(S.pend.email)}.</p>${err()}
+
+<label class="mu" for="ot">6-digit code</label><input id="ot" inputmode="numeric" maxlength="6" autocomplete="one-time-code"><button onclick="verify()">Verify and start trial</button><button class="alt" onclick="go('welcome')">Back</button>`}
+function vHome(){const u=S.me,st=status(u);if(st=="expired"||st=="none")return vPaywall();
+ return head()+`<div class="row"><span class="tag">${st=="sub"?"Subscribed":daysLeft(u)+" trial days left"}</span><span class="mu">${S.on?"Connected":"Not connected"}</span></div>
+<button class="big ${S.on?"on":""}" onclick="toggle()" aria-pressed="${S.on}">${S.on?"Disconnect":"Connect"}</button>
+<label class="mu" for="lc">Location</label><select id="lc" onchange="S.loc=this.value">${LOCS.map(l=>`<option ${l==S.loc?"selected":""}>${l}</option>`).join("")}</select>
+${st=="trial"?`<div class="card"><p>Keep your protection after the trial for ${S.cfg.currency} ${S.cfg.price.toFixed(2)} per week.</p><button class="alt" onclick="go('paywall')">See plan</button></div>`:""}`+nav()}
+function vPaywall(){const st=status(S.me),can=st=="trial"||st=="sub";return head()+`<h2>${st=="expired"?"Your subscription has ended":st=="none"?"Start your free trial":"Weekly plan"}</h2>${err()}<div class="card"><h1>${S.cfg.currency} ${S.cfg.price.toFixed(2)}<span class="mu"> / week</span></h1><p class="mu">${S.cfg.trialDays}-day free trial first, then billed weekly until you cancel in your store settings. Unlimited bandwidth, all locations.</p>${can?"":`<button onclick="buy()">${st=="none"?"Start free trial":"Subscribe"}</button>`}</div>${can?nav():""}`}
+function vSupport(){const w=S.cfg.wa.replace(/\D/g,"");return head()+`<h2>Support</h2><div class="sup"><a href="https://wa.me/${w}" target="_blank" rel="noopener">Chat on WhatsApp ${esc(S.cfg.wa)}</a><a href="mailto:${esc(S.cfg.email)}">Email ${esc(S.cfg.email)}</a></div>
+<div class="card"><h3>Open a ticket</h3>${err()}<label class="mu" for="tc">Topic</label><select id="tc"><option>Connection problem</option><option>Billing</option><option>Account</option><option>Other</option></select><label class="mu" for="ts">Subject</label><input id="ts"><label class="mu" for="tm">Message</label><textarea id="tm" rows="4"></textarea><button onclick="ticket()">Send ticket</button></div>`+nav()}
+function vAccount(){const u=S.me,st=status(u);return head()+`<h2>Account</h2><div class="card"><p>${esc(u.email)}</p><p class="mu">Plan: ${st=="sub"?"Weekly, "+S.cfg.currency+" "+S.cfg.price.toFixed(2):st=="trial"?"Free trial, "+daysLeft(u)+" days left":"Trial ended"}</p><button class="alt" onclick="signout()">Sign out</button><button class="alt" onclick="delAcct()">Delete account</button></div>`+nav()}
+
+/* Admin */
+function vAdmin(){if(!S.adm)return head()+`<h2>Admin sign in</h2>${err()}<label class="mu" for="au">Username</label><input id="au" autocomplete="username"><label class="mu" for="ap">Password</label><input id="ap" type="password" autocomplete="current-password"><button onclick="alogin()">Sign in</button>`;
+ if(S.mc)return head()+`<h2>Set a new admin login</h2><p class="mu">Default credentials must be replaced before you continue.</p>${err()}<label class="mu" for="nu">New username</label><input id="nu"><label class="mu" for="np">New password (10+ characters)</label><input id="np" type="password"><button onclick="achange()">Save credentials</button>`;
+ const T=[["brand","Brand"],["plan","Plan"],["support","Support"],["tickets","Tickets"],["users","Users"]];
+ let b="";const c=S.cfg;
+ if(S.tab=="brand")b=`<label class="mu" for="bn">App name</label><input id="bn" value="${esc(c.brand)}"><label class="mu" for="bc">Accent color</label><input id="bc" type="color" value="${c.accent}"><label class="mu" for="bl">Logo (PNG or SVG)</label><input id="bl" type="file" accept="image/*" onchange="upLogo(this)">${c.logo?`<button class="alt sm" onclick="S.cfg.logo='';render()">Remove logo</button>`:""}<button onclick="sBrand()">Save branding</button>`;
+ if(S.tab=="plan")b=`<label class="mu" for="td">Trial length (days)</label><input id="td" type="number" min="1" value="${c.trialDays}"><label class="mu" for="pr">Weekly price</label><input id="pr" type="number" step="0.01" value="${c.price}"><button onclick="sPlan()">Save plan</button><p class="mu">ResellPortal bills monthly or longer, so weekly charging is handled by your app-store billing.</p>`;
+ if(S.tab=="support")b=`<label class="mu" for="sw">WhatsApp number</label><input id="sw" value="${esc(c.wa)}"><label class="mu" for="se">Support email</label><input id="se" value="${esc(c.email)}"><p class="mu">Tickets are emailed to the TICKET_EMAIL address set on the server.</p><button onclick="sSup()">Save support</button>`;
+ if(S.tab=="tickets")b=S.tickets.length?`<div class="scroll"><table><tr><th>When</th><th>From</th><th>Subject</th><th>Email</th></tr>${S.tickets.map(t=>`<tr><td>${new Date(t.created_at).toLocaleDateString()}</td><td>${esc(t.email)}</td><td>${esc(t.cat)}: ${esc(t.subject)}</td><td>${t.emailed?"Sent":`<button class="sm" onclick="resend(${t.id})">Resend</button>`}</td></tr>`).join("")}</table></div>`:`<p class="mu">No tickets yet. New ones appear here and are emailed to you.</p>`;
+ if(S.tab=="users")b=S.users.length?`<div class="scroll"><table><tr><th>Email</th><th>Via</th><th>Status</th></tr>${S.users.map(u=>`<tr><td>${esc(u.email)}</td><td>${u.via}</td><td>${u.sub_status}</td></tr>`).join("")}</table></div>`:`<p class="mu">No users yet.</p>`;
+ return head()+`<div class="row"><h2>Admin panel</h2><button class="alt sm" onclick="asignout()">Sign out</button></div><div class="tabs">${T.map(([k,l])=>`<button class="${S.tab==k?"":"alt"}" onclick="tab('${k}')">${l}</button>`).join("")}</div>${err()}<div class="card">${b}</div>`}
+
+/* Actions */
+const E=f=>async(...a)=>{try{await f(...a)}catch(e){if(e.code==401&&S.v!="admin"){signout();return}go(S.v,e.message)}};
+const mapCfg=c=>({...S.cfg,brand:c.brand,accent:c.accent,logo:c.logo,trialDays:+c.trialDays,price:+c.price,wa:c.whatsapp,email:c.supportEmail});
+const loadCfg=async()=>{S.cfg=mapCfg(await api("/config"));theme()};
+const setAuth=r=>{S.tok=r.token;store("vpn_tok",r.token);S.me=r.user;go(["none","expired"].includes(S.me.status)?"paywall":"home")};
+const signup=E(async()=>{const e=$("em").value.trim().toLowerCase(),p=$("pw").value;if(!/^\S+@\S+\.\S+$/.test(e))return go("welcome","Enter a valid email.");if(p.length<8)return go("welcome","Password needs 8 or more characters.");await api("/auth/email/start",{method:"POST",body:{email:e,password:p}});S.pend={email:e};go("otp")});
+const verify=E(async()=>setAuth(await api("/auth/email/verify",{method:"POST",body:{email:S.pend.email,code:$("ot").value.trim()}})));
+const login=E(async()=>setAuth(await api("/auth/login",{method:"POST",body:{email:$("em").value.trim().toLowerCase(),password:$("pw").value}})));
+// Native bridge: window.getGoogleIdToken() returns a Google ID token; window.Billing.purchase(userId) runs the store purchase (RevenueCat logIn with the user id).
+const google=E(async()=>{if(!window.getGoogleIdToken)return go("welcome","Google sign-in needs the native Google module. Use email for now.");setAuth(await api("/auth/google",{method:"POST",body:{idToken:await window.getGoogleIdToken()}}))});
+const buy=E(async()=>{if(!window.Billing)return go("paywall","Store billing isn’t connected in this build.");await window.Billing.purchase(S.me.id);for(let i=0;i<10&&!["trial","sub"].includes(status(S.me));i++){await new Promise(r=>setTimeout(r,1500));S.me=await api("/me")}go(["trial","sub"].includes(status(S.me))?"home":"paywall")});
+const toggle=()=>{S.on=!S.on;render()};
+const signout=()=>{S.me=null;S.tok=null;store("vpn_tok",null);go("welcome")};
+const delAcct=E(async()=>{if(!confirm("Delete your account and VPN access? This can’t be undone."))return;await api("/me",{method:"DELETE"});signout()});
+const ticket=E(async()=>{const s=$("ts").value.trim(),m=$("tm").value.trim();if(!s||!m)return go("support","Add a subject and a message.");await api("/tickets",{method:"POST",body:{cat:$("tc").value,subject:s,message:m}});go("support");document.querySelector(".card").insertAdjacentHTML("afterbegin","<p>Ticket sent. We’ll reply by email.</p>")});
+const alogin=E(async()=>{const r=await api("/admin/login",{method:"POST",body:{user:$("au").value,password:$("ap").value}});S.at=r.token;store("vpn_adm",r.token,1);S.adm=true;S.mc=r.mustChange;await tab("brand")});
+const achange=E(async()=>{await api("/admin/credentials",{method:"PUT",body:{user:$("nu").value.trim(),password:$("np").value}},1);S.mc=false;await tab("brand")});
+const asignout=()=>{S.at=null;S.adm=false;store("vpn_adm",null,1);go("admin")};
+const tab=async k=>{S.tab=k;S.msg="";try{if(k=="users")S.users=await api("/admin/users",{},1);else if(k=="tickets")S.tickets=await api("/admin/tickets",{},1);else{const c=await api("/admin/settings",{},1);S.cfg=mapCfg({...c,trialDays:c.trial_days,supportEmail:c.support_email})}}catch(e){if(e.code==403)S.mc=true;else if(e.code==401){asignout();return}else S.msg=e.message}S.v="admin";render()};
+const sv=E(async b=>{await api("/admin/settings",{method:"PUT",body:b},1);await loadCfg();go("admin")});
+const sBrand=()=>sv({brand:$("bn").value.trim()||DEF.brand,accent:$("bc").value,logo:S.cfg.logo});
+const sPlan=()=>sv({trial_days:Math.max(1,+$("td").value||7),price:Math.max(.5,+$("pr").value||1.99)});
+const sSup=()=>sv({whatsapp:$("sw").value.trim(),support_email:$("se").value.trim()});
+const resend=E(async id=>{await api("/admin/tickets/"+id+"/resend",{method:"POST"},1);await tab("tickets")});
+function upLogo(i){const f=i.files[0];if(!f||f.size>500000)return go("admin","Logo must be under 500 KB (PNG, JPEG or WebP).");const r=new FileReader();r.onload=()=>{S.cfg.logo=r.result;render()};r.readAsDataURL(f)}
+function theme(){document.documentElement.style.setProperty("--ac",S.cfg.accent);document.title=S.cfg.brand}
+const V={welcome:vWelcome,otp:vOtp,home:vHome,paywall:vPaywall,support:vSupport,account:vAccount,admin:vAdmin};
+function render(){if(S.v!="admin"&&S.v!="welcome"&&S.v!="otp"&&!S.me)S.v="welcome";$("app").innerHTML=V[S.v]();}
+function route(){if(location.hash=="#admin")S.v="admin";else if(S.v=="admin")S.v=S.me?"home":"welcome";render()}
+addEventListener("hashchange",route);(async()=>{try{await loadCfg()}catch(e){}
+if(S.tok)try{S.me=await api("/me");S.v=["none","expired"].includes(S.me.status)?"paywall":"home"}catch(e){S.tok=null}
+if(S.at)try{await api("/admin/settings",{},1);S.adm=true}catch(e){if(e.code==403){S.adm=true;S.mc=true}else S.at=null}
+route()})();
+</script></body></html>
